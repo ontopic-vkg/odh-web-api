@@ -1,0 +1,109 @@
+title="Constract queries"
+
+[accommodation]
+name="accommodation"
+query="""
+BASE <http://noi.example.org/data/accommodation/>
+PREFIX schema: <http://schema.org/>
+ CONSTRUCT {
+   ?newH a ?cl ; schema:name ?nameStr ; schema:description ?descStr ; schema:url ?url ; schema:image ?imageurltoshow ;
+     schema:address [
+    a schema:PostalAddress ; schema:name ?aName ; schema:alternateName ?aAltNameStr; schema:addressRegion ?province ] .
+
+ }
+ WHERE {
+   # Show the @id property in Json LD default value true
+   BIND (!(COALESCE(?showid, "true") = "false") AS ?bShowId)
+
+   BIND (IRI(?Id) AS ?h)
+   BIND (COALESCE(?idtoshow, IRI(CONCAT("http://service.suedtirol.info/api/Accommodation/", ?Id)))  AS ?defaultH)
+   BIND (IF(?bShowId, ?defaultH, BNODE()) AS ?newH)
+   BIND (IF(?language = "ru" || ?language = "fr", ?language, "en") AS  ?normalizedLanguage )
+
+   VALUES (?province ?normalizedLanguage ) {
+   ("Südtirol - Alto Adige" "en")
+   ("Южный Тирол" "ru")
+   ("Sud-Tyrol" "fr")
+   }
+
+   ?h a schema:LodgingBusiness ;
+   schema:address ?a .
+   ?a a schema:PostalAddress .
+
+     # if  language exist use it
+    OPTIONAL {
+       ?h schema:name ?name .
+        FILTER (?language = lang(?name)  && ?language != "en")
+#        FILTER (langMatches ( lang(?name), ?language))
+     }
+
+    # if  language does not exist use english
+     OPTIONAL {
+      ?h schema:name ?name .
+        FILTER ("en" = lang(?name))
+#     FILTER (langMatches ( lang(?nameLan), "en"))
+    }
+
+
+   # TODO: map it
+   OPTIONAL {
+     ?h schema:description ?desc .
+     FILTER (?language = lang(?desc) && ?language != "en" )
+   }
+   OPTIONAL {
+    ?h schema:description ?desc .
+    FILTER ("en" = lang(?desc))
+  }
+
+   # TODO: map it
+   OPTIONAL {
+     ?h schema:url ?url .
+   }
+
+    OPTIONAL {
+        ?h schema:image ?imageurltoshow .
+     }
+
+   # TODO: map it
+   OPTIONAL {
+     ?a schema:name ?aName .
+     FILTER (lang(?name) = lang(?aName))
+   }
+
+   # TODO: map it
+   OPTIONAL {
+     ?a schema:alternateName ?aAltNameLan .
+     FILTER (?language  = lang(?aAltNameLan))
+   }
+     OPTIONAL {
+       ?a schema:alternateName ?aAltNameEn .
+       FILTER ("en" = lang(?descEn))
+     }
+     BIND(COALESCE(?aAltNameLan, ?aAltNameEn) as ?aAltName)
+
+
+   OPTIONAL {
+     ?h a schema:Hotel .
+     BIND (schema:Hotel AS ?c)
+   }
+   OPTIONAL {
+     ?h a schema:Campground .
+     BIND (schema:Campground AS ?c)
+   }
+   OPTIONAL {
+     ?h a schema:BedAndBreakfast .
+     BIND (schema:BedAndBreakfast AS ?c)
+   }
+   OPTIONAL {
+     ?h a schema:Hostel .
+     BIND (schema:Hostel AS ?c)
+   }
+   BIND (COALESCE(?c, schema:LodgingBusiness) AS ?cl)
+
+   BIND(str(?name) AS ?nameStr)
+   BIND(str(?desc) AS ?descStr)
+   BIND(str(?aAltName) AS ?aAltNameStr)
+
+
+ }
+"""

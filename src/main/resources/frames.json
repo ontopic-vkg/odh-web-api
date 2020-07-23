@@ -1,0 +1,15 @@
+{
+  "accommodation": {
+    "@context": "http://schema.org/",
+    "@type": [
+      "Hotel",
+      "Campground",
+      "BedAndBreakfast",
+      "Hostel",
+      "LodgingBusiness"
+    ],
+    "address": {
+      "@type": "PostalAddress"
+    }
+  }
+}
