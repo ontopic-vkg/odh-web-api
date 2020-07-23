@@ -6,9 +6,10 @@ query="""
 BASE <http://noi.example.org/data/accommodation/>
 PREFIX schema: <http://schema.org/>
  CONSTRUCT {
-   ?newH a ?cl ; schema:name ?nameStr ; schema:description ?descStr ; schema:url ?url ; schema:image ?imageurltoshow ;
+   ?newH a ?cl ; schema:name ?nameStr ; schema:description ?descStr ;  schema:image ?imageurltoshow ; schema:email ?email ;
      schema:address [
-    a schema:PostalAddress ; schema:name ?aName ; schema:alternateName ?aAltNameStr; schema:addressRegion ?province ] .
+    a schema:PostalAddress ; schema:name ?aNameStr ; schema:alternateName ?aAltNameStr;
+    schema:addressRegion ?province; schema:addressCountry ?country; schema:email ?email ;  schema:faxNumber ?aFax; schema:telephone ?aTelephone ] .
 
  }
  WHERE {
@@ -18,13 +19,32 @@ PREFIX schema: <http://schema.org/>
    BIND (IRI(?Id) AS ?h)
    BIND (COALESCE(?idtoshow, IRI(CONCAT("http://service.suedtirol.info/api/Accommodation/", ?Id)))  AS ?defaultH)
    BIND (IF(?bShowId, ?defaultH, BNODE()) AS ?newH)
-   BIND (IF(?language = "ru" || ?language = "fr", ?language, "en") AS  ?normalizedLanguage )
+   BIND (IF(?language = "ru" || ?language = "fr" || ?language = "pl" || ?language = "cs" || ?language = "de" || ?language = "nl" || ?language = "it"
+   , ?language, "en") AS  ?normalizedLanguage )
 
    VALUES (?province ?normalizedLanguage ) {
    ("Südtirol - Alto Adige" "en")
+   ("Alto Adige" "it")
    ("Южный Тирол" "ru")
    ("Sud-Tyrol" "fr")
+   ("Południowy Tyrol" "pl")
+   ("Itálie" "cs")
+   ("Italien" "de")
+   ("Italië" "nl")
    }
+
+   VALUES (?country ?normalizedLanguage ) {
+      ("Italia" "it")
+      ("Italy" "en")
+      ("Италия" "ru")
+      ("Italie" "fr")
+      ("Włochy" "pl")
+      ("Jižní Tyrolsko" "cs")
+      ("Südtirol" "de")
+      ("Südtirol" "nl")
+      }
+
+#   BIND (IRI(CONCAT("http://noi.example.org/data/gastronomy/", ?Id)) AS ?gastronomy)
 
    ?h a schema:LodgingBusiness ;
    schema:address ?a .
@@ -44,8 +64,6 @@ PREFIX schema: <http://schema.org/>
 #     FILTER (langMatches ( lang(?nameLan), "en"))
     }
 
-
-   # TODO: map it
    OPTIONAL {
      ?h schema:description ?desc .
      FILTER (?language = lang(?desc) && ?language != "en" )
@@ -55,22 +73,28 @@ PREFIX schema: <http://schema.org/>
     FILTER ("en" = lang(?desc))
   }
 
-   # TODO: map it
-   OPTIONAL {
-     ?h schema:url ?url .
-   }
+#   OPTIONAL {
+#     ?gastronomy schema:url ?url .
+#   }
 
     OPTIONAL {
         ?h schema:image ?imageurltoshow .
      }
 
-   # TODO: map it
-   OPTIONAL {
-     ?a schema:name ?aName .
-     FILTER (lang(?name) = lang(?aName))
-   }
+    OPTIONAL {
+        ?h schema:email ?email .
+     }
 
-   # TODO: map it
+   OPTIONAL {
+          ?a schema:name ?aName .
+           FILTER (?language = lang(?aName)  && ?language != "en")
+        }
+
+        OPTIONAL {
+         ?a schema:name ?aName .
+           FILTER ("en" = lang(?aName))
+       }
+
    OPTIONAL {
      ?a schema:alternateName ?aAltNameLan .
      FILTER (?language  = lang(?aAltNameLan))
@@ -80,6 +104,18 @@ PREFIX schema: <http://schema.org/>
        FILTER ("en" = lang(?descEn))
      }
      BIND(COALESCE(?aAltNameLan, ?aAltNameEn) as ?aAltName)
+
+    OPTIONAL {
+     ?a schema:email ?aEmail .
+   }
+
+   OPTIONAL {
+        ?a  schema:faxNumber ?aFax .
+      }
+
+   OPTIONAL {
+          ?a schema:telephone ?aTelephone .
+   }
 
 
    OPTIONAL {
@@ -103,6 +139,7 @@ PREFIX schema: <http://schema.org/>
    BIND(str(?name) AS ?nameStr)
    BIND(str(?desc) AS ?descStr)
    BIND(str(?aAltName) AS ?aAltNameStr)
+   BIND(str(?aName) AS ?anameStr)
 
 
  }
