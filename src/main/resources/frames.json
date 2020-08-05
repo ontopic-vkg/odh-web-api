@@ -7,9 +7,6 @@
       "BedAndBreakfast",
       "Hostel",
       "LodgingBusiness"
-    ],
-    "address": {
-      "@type": "PostalAddress"
-    }
+    ]
   }
 }

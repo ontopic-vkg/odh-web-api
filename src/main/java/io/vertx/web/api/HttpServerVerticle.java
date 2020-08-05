@@ -2,6 +2,7 @@ package io.vertx.web.api;
 
 import com.apicatalog.jsonld.JsonLd;
 import com.apicatalog.jsonld.api.JsonLdError;
+import com.apicatalog.jsonld.api.JsonLdOptions;
 import com.apicatalog.jsonld.api.impl.FramingApi;
 import com.apicatalog.jsonld.document.JsonDocument;
 
@@ -22,9 +23,10 @@ import org.apache.jena.query.ParameterizedSparqlString;
 
 import javax.json.JsonObject;
 import java.io.*;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 
 public class HttpServerVerticle extends AbstractVerticle {
 
@@ -93,7 +95,7 @@ public class HttpServerVerticle extends AbstractVerticle {
 
             //Read input files
             InputStream tomlFile = getClass().getClassLoader().getResourceAsStream("construct-queries.toml");
-            InputStream schema = getClass().getClassLoader().getResourceAsStream("schema-context.json");
+            InputStream schema = getClass().getClassLoader().getResourceAsStream("schema-context.jsonld");
             InputStream jsonFramesStream = getClass().getClassLoader().getResourceAsStream("frames.json");
 
             Toml toml = new Toml().read(tomlFile);
@@ -169,12 +171,17 @@ public class HttpServerVerticle extends AbstractVerticle {
 
                 String frame = getFrame(frameObject, type);
 
-                // Send a GET request
-                client
-                        .get(endpointPort, endpointHost, "/sparql")
-                        .addQueryParam("query", sparqlQuery)
+                // Send a POST request
+                client.post(endpointPort, endpointHost, "/sparql")
                         .putHeader("Accept", "application/ld+json")
-                        .send( ar -> {
+                        .putHeader("Content-type", "application/sparql-query")
+                        .sendBuffer(Buffer.buffer(sparqlQuery), ar  -> {
+
+//                client
+//                        .get(endpointPort, endpointHost, "/sparql")
+//                        .addQueryParam("query", sparqlQuery)
+//                        .putHeader("Accept", "application/ld+json")
+//                        .send( ar -> {
                             if (ar.succeeded()) {
                                 // Obtain response
                                 HttpResponse<Buffer> res = ar.result();
@@ -192,13 +199,16 @@ public class HttpServerVerticle extends AbstractVerticle {
                                 try {
                                     JsonDocument jsonldDoc = JsonDocument.of(streamJsonLd);
                                     JsonDocument frameDoc = JsonDocument.of(streamFrame);
-                                    FramingApi framedObject = JsonLd.frame(jsonldDoc, frameDoc);
-                                    if(schema != null) {
-                                        JsonDocument streamDoc = JsonDocument.of(schema);
-                                        framedObject.context(streamDoc);
-                                    };
 
-                                    JsonObject framed = framedObject.get();
+                                    JsonLdOptions  jlo = new JsonLdOptions();
+                                    FramingApi framedObject = JsonLd.frame(jsonldDoc, frameDoc);
+
+//                                    if(schema != null) {
+//                                        JsonDocument streamDoc = JsonDocument.of(schema);
+//                                        jlo.setExpandContext(streamDoc);
+//                                    };
+
+                                    JsonObject framed = framedObject.options(jlo).get();
                                     responseJson = framed.toString();
 
                                     response.putHeader("content-type", "application/ld+json");
