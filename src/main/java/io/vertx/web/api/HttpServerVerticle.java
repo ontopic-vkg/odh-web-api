@@ -3,9 +3,12 @@ package io.vertx.web.api;
 import com.apicatalog.jsonld.JsonLd;
 import com.apicatalog.jsonld.api.JsonLdError;
 import com.apicatalog.jsonld.api.JsonLdOptions;
+import com.apicatalog.jsonld.api.impl.CompactionApi;
 import com.apicatalog.jsonld.api.impl.FramingApi;
+import com.apicatalog.jsonld.api.impl.FromRdfApi;
+import com.apicatalog.jsonld.document.Document;
 import com.apicatalog.jsonld.document.JsonDocument;
-
+import com.apicatalog.jsonld.document.RdfDocument;
 import com.google.gson.JsonParser;
 import com.moandjiezana.toml.Toml;
 import io.vertx.core.AbstractVerticle;
@@ -21,10 +24,12 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import org.apache.jena.query.ParameterizedSparqlString;
 
+import javax.json.JsonArray;
 import javax.json.JsonObject;
-import java.io.*;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
@@ -90,6 +95,8 @@ public class HttpServerVerticle extends AbstractVerticle {
             System.out.println( "VERSION: " + request.version() );
             System.out.println( "PATH: " + request.path() );
             System.out.println( "QUERY: " + request.query() );
+
+            long startingTime = System.currentTimeMillis();
 
             HttpServerResponse response = routingContext.response();
 
@@ -165,23 +172,20 @@ public class HttpServerVerticle extends AbstractVerticle {
                     pss.setLiteral("showid", showId);
                 }
 
-
                 String sparqlQuery = pss.toString();
-                System.out.println(sparqlQuery);
+//                System.out.println(sparqlQuery);
 
                 String frame = getFrame(frameObject, type);
-
+                System.out.println("Start post request " + (System.currentTimeMillis() - startingTime));
+                System.out.println(sparqlQuery);
                 // Send a POST request
                 client.post(endpointPort, endpointHost, "/sparql")
                         .putHeader("Accept", "application/ld+json")
                         .putHeader("Content-type", "application/sparql-query")
                         .sendBuffer(Buffer.buffer(sparqlQuery), ar  -> {
 
-//                client
-//                        .get(endpointPort, endpointHost, "/sparql")
-//                        .addQueryParam("query", sparqlQuery)
-//                        .putHeader("Accept", "application/ld+json")
-//                        .send( ar -> {
+                            System.out.println("On post request " + (System.currentTimeMillis() - startingTime));
+
                             if (ar.succeeded()) {
                                 // Obtain response
                                 HttpResponse<Buffer> res = ar.result();
@@ -201,18 +205,24 @@ public class HttpServerVerticle extends AbstractVerticle {
                                     JsonDocument frameDoc = JsonDocument.of(streamFrame);
 
                                     JsonLdOptions  jlo = new JsonLdOptions();
-                                    FramingApi framedObject = JsonLd.frame(jsonldDoc, frameDoc);
+                                    jlo.setUseNativeTypes(true);
 
-//                                    if(schema != null) {
-//                                        JsonDocument streamDoc = JsonDocument.of(schema);
-//                                        jlo.setExpandContext(streamDoc);
-//                                    };
+//                                    FramingApi framedObject = JsonLd.frame(jsonldDoc, frameDoc);
 
-                                    JsonObject framed = framedObject.options(jlo).get();
-                                    responseJson = framed.toString();
+                                    if(schema != null) {
+                                        JsonDocument streamDoc = JsonDocument.of(schema);
+//                                        CompactionApi compactjson = JsonLd.compact(jsonldDoc, streamDoc).options(jlo);
+
+                                        FramingApi framedObject = JsonLd.frame(jsonldDoc, frameDoc);
+//                                        FramingApi framedObject = JsonLd.frame(JsonDocument.of(compactjson.get()), frameDoc);
+                                        JsonObject framed = framedObject.options(jlo).get();
+                                        responseJson = framed.toString();
+                                    };
+
+
 
                                     response.putHeader("content-type", "application/ld+json");
-
+                                    System.out.println("Time " + (System.currentTimeMillis() - startingTime));
                                     response.end(responseJson);
                                 } catch (JsonLdError jsonLdError) {
                                     jsonLdError.printStackTrace();
