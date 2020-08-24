@@ -25,11 +25,11 @@ PREFIX schema: <http://schema.org/>
  }
  WHERE {
    # Show the @id property in Json LD default value true
-   BIND (!(COALESCE(?showid, "true") = "false") AS ?bShowId)
+   BIND ((COALESCE(?showid, "true") != "false") AS ?bShowId)
 
 
    BIND (IRI(?Id) AS ?h)
-   BIND (COALESCE(?urltoshow , COALESCE(?idtoshow, IRI(CONCAT("http://service.suedtirol.info/api/Accommodation/", ?Id))))  AS ?defaultH)
+   BIND (COALESCE(?idtoshow, IRI(CONCAT("http://service.suedtirol.info/api/Accommodation/", ?Id)))  AS ?defaultH)
 
    BIND (IF(?bShowId, ?defaultH, BNODE()) AS ?newH)
    BIND (IF(?language = "ru" || ?language = "fr" || ?language = "pl"
@@ -89,7 +89,8 @@ PREFIX schema: <http://schema.org/>
   }
 
   OPTIONAL {
-        ?h schema:image ?image .
+        ?h schema:image ?im .
+        BIND(IF(STRSTARTS(str(?im) , "https://doc.lts.it/DocSite/ImageRender.aspx") , IRI(CONCAT (str(?im), "&W=800")), ?im ) AS ?image )
   }
 
   OPTIONAL {
@@ -201,7 +202,7 @@ PREFIX schema: <http://schema.org/>
    BIND(str(?aStreet) AS ?aStreetStr)
    BIND(str(?aLocality) AS ?aLocalityStr)
    BIND(COALESCE(?sRating, 0) AS ?sRatingN)
-   BIND (COALESCE(?imageurltoshow, ?image ) AS ?imageurl)
+   BIND(COALESCE(?imageurltoshow, ?image ) AS ?imageurl)
 
  }
 """
