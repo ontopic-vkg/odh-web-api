@@ -1,5 +1,6 @@
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestOptions;
 import io.vertx.ext.unit.TestSuite;
@@ -34,17 +35,6 @@ public class HttpServerTest {
         suite.test("check connection to http server", context -> {
 
             Async async = context.async();
-            // Send a request and get a response
-//            HttpClient client = vertx.createHttpClient();
-//
-//            HttpClientRequest req = client.get(9090, "localhost", "/");
-//            req.exceptionHandler(err -> context.fail(err.getMessage()));
-//            req.handler(resp -> {
-//                resp.bodyHandler(body -> context.assertEquals("hello !", body.toString("UTF-8")));
-//                client.close();
-//                async.complete();
-//            });
-//            req.end();
 
             WebClient client = WebClient.create(vertx);
 
@@ -67,8 +57,40 @@ public class HttpServerTest {
 
         });
 
+
+        suite.test("web api parameters test", context -> {
+
+            Async async = context.async();
+
+            WebClient client = WebClient.create(vertx);
+
+            // Send a GET request
+            client
+                    .get(9090, "localhost", "/api/JsonLD/DetailInLD?type=accommodation&Id=70043B17DAE33F1EFCDA24D4BB4C1F72&showid=true&endpoint=sparql.opendatahub.testingmachine.eu&language=de")
+                    .send(ar -> {
+                        if (ar.succeeded()) {
+                            // Obtain response
+                            HttpResponse<Buffer> response = ar.result();
+                            JsonObject jsonresult = response.bodyAsJsonObject();
+                            context.assertEquals(200, response.statusCode());
+                            context.assertEquals("http://service.suedtirol.info/api/Accommodation/70043B17DAE33F1EFCDA24D4BB4C1F72", jsonresult.getString("id") );
+
+                            async.complete();
+                            System.out.println("Received response with status code " + response.statusCode());
+                        } else {
+                            System.out.println("Something went wrong " + ar.cause().getMessage() );
+                            context.fail(ar.cause().getMessage());
+                        }
+                    });
+
+
+        });
+
         suite.run(options);
+
     }
+
+
 
 
 }

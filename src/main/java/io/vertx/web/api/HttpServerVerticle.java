@@ -6,9 +6,11 @@ import com.apicatalog.jsonld.api.JsonLdOptions;
 import com.apicatalog.jsonld.api.impl.CompactionApi;
 import com.apicatalog.jsonld.api.impl.FramingApi;
 import com.apicatalog.jsonld.api.impl.FromRdfApi;
+import com.apicatalog.jsonld.api.impl.ToRdfApi;
 import com.apicatalog.jsonld.document.Document;
 import com.apicatalog.jsonld.document.JsonDocument;
 import com.apicatalog.jsonld.document.RdfDocument;
+import com.apicatalog.rdf.RdfDataset;
 import com.google.gson.JsonParser;
 import com.moandjiezana.toml.Toml;
 import io.vertx.core.AbstractVerticle;
@@ -26,6 +28,7 @@ import org.apache.jena.query.ParameterizedSparqlString;
 
 import javax.json.JsonArray;
 import javax.json.JsonObject;
+import javax.json.JsonStructure;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -47,7 +50,7 @@ public class HttpServerVerticle extends AbstractVerticle {
     }
 
     @Override
-    public void start() throws Exception {
+    public void start() {
 
         System.out.println("Vert.x instance: " + vertx);
 
@@ -120,13 +123,15 @@ public class HttpServerVerticle extends AbstractVerticle {
             com.google.gson.JsonObject frameObject = new JsonParser().parse(reader).getAsJsonObject();
 
 
-            //TODO: only for testing phase, remove endpoint
+            //TODO: localhost endpoint only for testing phase, remove once the endpoint is defined
             String endpointHost = request.getParam("endpoint") ;
+
 
             if (endpointHost == null) {
                 endpointHost = "sparql.opendatahub.bz.it";
             }
-            int endpointPort = endpointHost.equals("localhost")? 8080: 80;
+            int endpointPort = endpointHost.equals("localhost")? 8080: 443;
+            boolean isSSL = !endpointHost.equals("localhost");
 
             // Get query parameters
             String type = request.getParam("type");
@@ -146,8 +151,6 @@ public class HttpServerVerticle extends AbstractVerticle {
             if (imageurltoshow != null && !isValidURI(imageurltoshow)) {
                 response.setStatusCode(400).end("Error: Invalid URI: The format of the URI could not be determined.");
             }
-
-
 
             WebClient client = WebClient.create(vertx);
 
@@ -173,13 +176,13 @@ public class HttpServerVerticle extends AbstractVerticle {
                 }
 
                 String sparqlQuery = pss.toString();
-//                System.out.println(sparqlQuery);
 
                 String frame = getFrame(frameObject, type);
                 System.out.println("Start post request " + (System.currentTimeMillis() - startingTime));
                 System.out.println(sparqlQuery);
                 // Send a POST request
                 client.post(endpointPort, endpointHost, "/sparql")
+                        .ssl(isSSL)
                         .putHeader("Accept", "application/ld+json")
                         .putHeader("Content-type", "application/sparql-query")
                         .sendBuffer(Buffer.buffer(sparqlQuery), ar  -> {
@@ -192,34 +195,30 @@ public class HttpServerVerticle extends AbstractVerticle {
                                 String result = res.bodyAsString();
 
                                 System.out.println("Received response with status code " + res.statusCode());
-                                System.out.println("return jsonld " + result);
+                                System.out.println("Returned jsonld " + result);
 
-                                InputStream streamJsonLd =  new ByteArrayInputStream(result.getBytes(StandardCharsets.UTF_8));
-
+                                InputStream streamResult =  new ByteArrayInputStream(result.getBytes(StandardCharsets.UTF_8));
                                 InputStream streamFrame =  new ByteArrayInputStream(frame.getBytes(StandardCharsets.UTF_8));
-
 
                                 String responseJson = "";
                                 try {
-                                    JsonDocument jsonldDoc = JsonDocument.of(streamJsonLd);
+                                    JsonDocument jsonDocument = JsonDocument.of(streamResult);
                                     JsonDocument frameDoc = JsonDocument.of(streamFrame);
 
                                     JsonLdOptions  jlo = new JsonLdOptions();
-                                    jlo.setUseNativeTypes(true);
+//                                    jlo.setUseNativeTypes(true);
+//                                    JsonArray rdf = JsonLd.fromRdf(RdfDocument.of(streamResult)).options(jlo).get();
+//                                    JsonDocument jsonDocument = JsonDocument.of(rdf);
 
-//                                    FramingApi framedObject = JsonLd.frame(jsonldDoc, frameDoc);
-
+                                    FramingApi framedObject = JsonLd.frame(jsonDocument, frameDoc);
                                     if(schema != null) {
-                                        JsonDocument streamDoc = JsonDocument.of(schema);
-//                                        CompactionApi compactjson = JsonLd.compact(jsonldDoc, streamDoc).options(jlo);
-
-                                        FramingApi framedObject = JsonLd.frame(jsonldDoc, frameDoc);
+                                        JsonDocument streamSchema = JsonDocument.of(schema);
+//                                        CompactionApi compactjson = JsonLd.compact(jsonDocument, streamDoc).options(jlo);
+                                        jlo.setExpandContext(streamSchema);
+                                    }
 //                                        FramingApi framedObject = JsonLd.frame(JsonDocument.of(compactjson.get()), frameDoc);
-                                        JsonObject framed = framedObject.options(jlo).get();
-                                        responseJson = framed.toString();
-                                    };
-
-
+                                    JsonObject framed = framedObject.options(jlo).get();
+                                    responseJson = framed.toString();
 
                                     response.putHeader("content-type", "application/ld+json");
                                     System.out.println("Time " + (System.currentTimeMillis() - startingTime));
@@ -247,9 +246,9 @@ public class HttpServerVerticle extends AbstractVerticle {
     private boolean isValidURI(String input) {
 
         try {
-           URL obj = new URL(input);
-           obj.toURI();
-           return true;
+            URL obj = new URL(input);
+            obj.toURI();
+            return true;
         } catch (Exception e1) {
             return false;
         }
