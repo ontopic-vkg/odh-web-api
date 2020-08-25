@@ -15,13 +15,13 @@ PREFIX schema: <http://schema.org/>
         schema:streetAddress ?aStreetStr ;  schema:postalCode ?aZip ; schema:telephone ?telephone;
         schema:email ?email ;  schema:faxNumber ?fax  ] ;
    schema:geo [
-        a schema:GeoCoordinates ; schema:latitude ?gLatitude ; schema:longitude ?gLongitude ] ;
+        a schema:GeoCoordinates ; schema:latitude ?gLatitudeStr ; schema:longitude ?gLongitudeStr ] ;
    schema:starRating [
         a schema:Rating ; schema:ratingValue ?sRatingValue] ;
    schema:aggregateRating ?agRating .
         ?agRating a schema:AggregateRating ;
         schema:author [ a schema:Organization; schema:name ?authorName ; schema:url ?authorUrl] ;
-        schema:ratingValue ?aggValue ; schema:bestRating ?aggBest ; schema:reviewCount ?aggCount  .
+        schema:ratingValue ?aggValueStr ; schema:bestRating ?aggBestStr ; schema:reviewCount ?aggCountStr  .
  }
  WHERE {
 
@@ -214,8 +214,14 @@ PREFIX schema: <http://schema.org/>
    BIND(str(?aName) AS ?aNameStr)
    BIND(str(?aStreet) AS ?aStreetStr)
    BIND(str(?aLocality) AS ?aLocalityStr)
-   BIND(COALESCE(?sRating, 0) AS ?sRatingValue)
-   BIND(COALESCE(?imageUrltoshow, ?image ) AS ?imageUrl)
+   BIND(str(COALESCE(?sRating, 0)) AS ?sRatingValue)
+   BIND(COALESCE(?imageurltoshow, ?image ) AS ?imageUrl)
+   BIND(str(?name) AS ?nameStr)
+   BIND(str(?aggValue) AS ?aggValueStr)
+   BIND(str(?aggBest) AS ?aggBestStr)
+   BIND(str(?aggCount) AS ?aggCountStr)
+   BIND(str(?gLatitude) AS ?gLatitudeStr)
+   BIND(str(?gLongitude) AS ?gLongitudeStr)
 
  }
 """
