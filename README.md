@@ -7,10 +7,6 @@ displaying data in JSON-LD format from a SPARQL endpoint using schema.org standa
 ## Table of contents
 
 - [Usage](#usage)
-- [Gettings started](#getting-started)
-- [Tests and linting](#tests-and-linting)
-- [Deployment](#deployment)
-- [Docker environment](#docker-environment)
 - [Parameters](#parameters)
 - [Information](#information)
 

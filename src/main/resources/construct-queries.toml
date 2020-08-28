@@ -35,9 +35,10 @@ PREFIX schema: <http://schema.org/>
    BIND (IF(?hasId, ?defaultId, BNODE()) AS ?idUrl)
 
    # build default @id
-   BIND (IF(?language = "ru" || ?language = "fr" || ?language = "pl"
-            || ?language = "cs" || ?language = "de" ||
-             ?language = "nl" || ?language = "it", ?language, "en") AS  ?normalizedLanguage )
+   BIND (COALESCE(?language, "en") AS ?l)
+   BIND (IF(?l = "ru" || ?l = "fr" || ?l = "pl"
+            || ?l = "cs" || ?l = "de" ||
+             ?l = "nl" || ?l = "it", ?l, "en") AS  ?normalizedLanguage)
 
    # data block
    VALUES (?province ?normalizedLanguage ) {
