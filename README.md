@@ -53,36 +53,41 @@ Example: http://localhost:9090/api/JsonLD/DetailInLD?type=accommodation&Id=70043
 ## Parameters
 
 #### type 
-Data Type to transform currently available only 'accommodation', required
-Example: type=accommodation
+Main class to transform
+ - Required
+ - Currently available:  only `accommodation`
+ - Example: `type=accommodation`
 
 #### Id
-ID of the data to transform, required
-Example Id=70043B17DAE33F1EFCDA24D4BB4C1F72
+ID of the data to transform
+ - Required
+ - Example: `Id=70043B17DAE33F1EFCDA24D4BB4C1F72`
 
 #### endpoint
 Absolute url of the SPARQL endpoint 
-Default value : https://sparql.opendatahub.bz.it/sparql
-Example endpoint=http://host.docker.internal:8080/sparql
+ - Default value: `https://sparql.opendatahub.bz.it/sparql`
+ - Example: `endpoint=http://host.docker.internal:8080/sparql`
 
 #### language
 Output Language
-Default value : en
-Example language=de
+ - Default value: `en`
+ - Example: `language=de`
 
 #### idtoshow
-Url to show on Json LD @id, not provided Id of ODH api call is taken
-Example idtoshow=http://noi.example.org/23
+Url to show as main `@id`
+ - If not provided, the id of ODH API call is taken
+ - Example: `idtoshow=http://noi.example.org/23`
 
 
 #### imageurltoshow
-image url to show on Json LD @image, not provided image url of data is taken
-Example imageurltoshow=http://noi.example.org/images/image23.jpg
+image url to include in the Json-LD
+ - If not provided, the image URL from the VKG is taken
+ - Example: `imageurltoshow=http://noi.example.org/images/image23.jpg`
 
 #### showid
-Show the @id property in Json LD
-Default value : true
-Example showid=false
+Show the `@id` property in the Json-LD
+ - Default value: `true`
+ - Example: `showid=false`
 
 
 ## Information
