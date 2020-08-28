@@ -41,10 +41,10 @@ docker run -t -i -p 9090:9090 ontopic-web-api/json-ld
 
 1. Build and run the Docker 
 
-2. Test the web api
+2. Test the Web API
 
 * Now we can open the link <http://localhost:9090/api/JsonLD/DetailInLD> 
-in the browser and test the web api adding the mandatory parameters type and Id.
+in the browser and test the Web API by adding the mandatory parameters `type` and `Id`.
 
 * All the accepted parameters can be seen in [the dedicated section](#parameters)
 
@@ -53,7 +53,7 @@ Example: http://localhost:9090/api/JsonLD/DetailInLD?type=accommodation&Id=70043
 ## Parameters
 
 #### type 
-Main class to transform
+Main type to transform
  - Required
  - Currently available:  only `accommodation`
  - Example: `type=accommodation`
