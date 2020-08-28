@@ -3,14 +3,8 @@ package io.vertx.web.api;
 import com.apicatalog.jsonld.JsonLd;
 import com.apicatalog.jsonld.api.JsonLdError;
 import com.apicatalog.jsonld.api.JsonLdOptions;
-import com.apicatalog.jsonld.api.impl.CompactionApi;
 import com.apicatalog.jsonld.api.impl.FramingApi;
-import com.apicatalog.jsonld.api.impl.FromRdfApi;
-import com.apicatalog.jsonld.api.impl.ToRdfApi;
-import com.apicatalog.jsonld.document.Document;
 import com.apicatalog.jsonld.document.JsonDocument;
-import com.apicatalog.jsonld.document.RdfDocument;
-import com.apicatalog.rdf.RdfDataset;
 import com.google.gson.JsonParser;
 import com.moandjiezana.toml.Toml;
 import io.vertx.core.AbstractVerticle;
@@ -26,9 +20,7 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import org.apache.jena.query.ParameterizedSparqlString;
 
-import javax.json.JsonArray;
 import javax.json.JsonObject;
-import javax.json.JsonStructure;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -38,7 +30,8 @@ import java.nio.charset.StandardCharsets;
 
 public class HttpServerVerticle extends AbstractVerticle {
 
-    String jsonPath = "/api/JsonLD/DetailInLD";
+    String jsonPath = "/api/JsonLD";
+    String jsonDetailPath = jsonPath + "/DetailInLD";
     String host = "localhost";
 
     int port = 9090;
@@ -59,21 +52,20 @@ public class HttpServerVerticle extends AbstractVerticle {
 
         HttpServerOptions options = new HttpServerOptions()
                 .setPort(port)
-                .setHost(host);
+                .setHost("0.0.0.0");
 
         io.vertx.core.http.HttpServer server = vertx.createHttpServer(options);
 
-        // TODO remove Test route
-        router.route("/").handler(routingContext -> {
+        router.route(jsonPath).handler(routingContext -> {
 
             HttpServerResponse response = routingContext.response();
 
             response.putHeader("content-type", "text/plain");
 
-            response.end("hello !");
+            response.end("JSON-LD web api");
         });
 
-        Route routeDetail = router.route(jsonPath);
+        Route routeDetail = router.route(jsonDetailPath);
         routeDetail.blockingHandler(handleDetailInLd());
 
         server.requestHandler(router);
@@ -91,13 +83,6 @@ public class HttpServerVerticle extends AbstractVerticle {
         return routingContext -> {
 
             HttpServerRequest request = routingContext.request();
-
-            // TODO remove Test
-            System.out.println( "URI: " + request.uri() );
-            System.out.println( "METHOD: " + request.method() );
-            System.out.println( "VERSION: " + request.version() );
-            System.out.println( "PATH: " + request.path() );
-            System.out.println( "QUERY: " + request.query() );
 
             long startingTime = System.currentTimeMillis();
 
@@ -122,16 +107,12 @@ public class HttpServerVerticle extends AbstractVerticle {
             Reader reader = new InputStreamReader(jsonFramesStream);
             com.google.gson.JsonObject frameObject = new JsonParser().parse(reader).getAsJsonObject();
 
-
-            //TODO: localhost endpoint only for testing phase, remove once the endpoint is defined
-            String endpointHost = request.getParam("endpoint") ;
+            String endpoint = request.getParam("endpoint") ;
 
 
-            if (endpointHost == null) {
-                endpointHost = "sparql.opendatahub.bz.it";
+            if (endpoint == null) {
+                endpoint = "https://sparql.opendatahub.bz.it/sparql";
             }
-            int endpointPort = endpointHost.equals("localhost")? 8080: 443;
-            boolean isSSL = !endpointHost.equals("localhost");
 
             // Get query parameters
             String type = request.getParam("type");
@@ -143,7 +124,8 @@ public class HttpServerVerticle extends AbstractVerticle {
             String showId = request.getParam("showid");
 
             if (type == null || id == null ){
-                response.setStatusCode(400).end("The request" + request.uri() + " is invalid.");
+                response.setStatusCode(400).end("The request" + request.uri() +
+                        " is invalid. Mandatory parameters are type and Id Example: type=accommodation&Id=70043B17DAE33F1EFCDA24D4BB4C1F72");
             }
             if (urltoshow != null && !isValidURI(urltoshow)) {
                 response.setStatusCode(400).end("Error: Invalid URI: The format of the URI could not be determined.");
@@ -178,28 +160,25 @@ public class HttpServerVerticle extends AbstractVerticle {
                 String sparqlQuery = pss.toString();
 
                 String frame = getFrame(frameObject, type);
-                System.out.println("Start post request " + (System.currentTimeMillis() - startingTime));
+                long startPostRequest = System.currentTimeMillis() - startingTime;
                 System.out.println(sparqlQuery);
                 // Send a POST request
-                client.post(endpointPort, endpointHost, "/sparql")
-                        .ssl(isSSL)
+                client.postAbs(endpoint)
                         .putHeader("Accept", "application/ld+json")
                         .putHeader("Content-type", "application/sparql-query")
                         .sendBuffer(Buffer.buffer(sparqlQuery), ar  -> {
-
-                            System.out.println("On post request " + (System.currentTimeMillis() - startingTime));
-
+                            long endPostRequest  = (System.currentTimeMillis() - startPostRequest);
                             if (ar.succeeded()) {
                                 // Obtain response
                                 HttpResponse<Buffer> res = ar.result();
                                 String result = res.bodyAsString();
 
-                                System.out.println("Received response with status code " + res.statusCode());
-                                System.out.println("Returned jsonld " + result);
-
                                 InputStream streamResult =  new ByteArrayInputStream(result.getBytes(StandardCharsets.UTF_8));
                                 InputStream streamFrame =  new ByteArrayInputStream(frame.getBytes(StandardCharsets.UTF_8));
 
+                                if(res.statusCode() != 200) {
+                                    response.setStatusCode(res.statusCode()).end("Problem on the sparql query" + result);
+                                }
                                 String responseJson = "";
                                 try {
                                     JsonDocument jsonDocument = JsonDocument.of(streamResult);
@@ -221,8 +200,13 @@ public class HttpServerVerticle extends AbstractVerticle {
                                     responseJson = framed.toString();
 
                                     response.putHeader("content-type", "application/ld+json");
-                                    System.out.println("Time " + (System.currentTimeMillis() - startingTime));
                                     response.end(responseJson);
+                                    long endTime = System.currentTimeMillis();
+
+                                    System.out.println("Received response with status code " + res.statusCode());
+                                    System.out.println("Returned jsonld " + result);
+                                    System.out.println("Total Time " + ( endTime - startingTime));
+                                    System.out.println("Time from post request received " + (endTime - endPostRequest));
                                 } catch (JsonLdError jsonLdError) {
                                     jsonLdError.printStackTrace();
                                     response.setStatusCode(500).end("Problem processing in JsonLd " + jsonLdError.getMessage());

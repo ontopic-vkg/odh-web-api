@@ -40,12 +40,12 @@ public class HttpServerTest {
 
             // Send a GET request
             client
-                    .get(9090, "localhost", "/")
+                    .get(9090, "localhost", "/api/JsonLD")
                     .send(ar -> {
                         if (ar.succeeded()) {
                             // Obtain response
                             HttpResponse<Buffer> response = ar.result();
-                            context.assertEquals("hello !", response.bodyAsString("UTF-8"));
+                            context.assertEquals("JSON-LD web api", response.bodyAsString("UTF-8"));
                             async.complete();
                             System.out.println("Received response with status code " + response.statusCode());
                         } else {
@@ -66,17 +66,16 @@ public class HttpServerTest {
 
             // Send a GET request
             client
-                    .get(9090, "localhost", "/api/JsonLD/DetailInLD?type=accommodation&Id=70043B17DAE33F1EFCDA24D4BB4C1F72&showid=true&endpoint=sparql.opendatahub.testingmachine.eu&language=de")
+                    .get(9090, "localhost", "/api/JsonLD/DetailInLD?type=accommodation&Id=70043B17DAE33F1EFCDA24D4BB4C1F72&showid=true&endpoint=https://sparql.opendatahub.testingmachine.eu/sparql&language=de")
                     .send(ar -> {
                         if (ar.succeeded()) {
                             // Obtain response
                             HttpResponse<Buffer> response = ar.result();
-                            JsonObject jsonresult = response.bodyAsJsonObject();
                             context.assertEquals(200, response.statusCode());
+                            JsonObject jsonresult = response.bodyAsJsonObject();
                             context.assertEquals("http://service.suedtirol.info/api/Accommodation/70043B17DAE33F1EFCDA24D4BB4C1F72", jsonresult.getString("id") );
 
                             async.complete();
-                            System.out.println("Received response with status code " + response.statusCode());
                         } else {
                             System.out.println("Something went wrong " + ar.cause().getMessage() );
                             context.fail(ar.cause().getMessage());
