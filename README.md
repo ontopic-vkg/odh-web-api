@@ -34,7 +34,7 @@ docker build -t ontopic-web-api/json-ld .
 The you can run the image:
 
 ```
-docker run -t -i -p 9090:9090 ontopic-web-api/json-ld
+docker run -t -i -p 9090:9090 --name odh-api ontopic-web-api/json-ld
 ```
 
 ### Local deployment
@@ -48,7 +48,10 @@ in the browser and test the Web API by adding the mandatory parameters `type` an
 
 * All the accepted parameters can be seen in [the dedicated section](#parameters)
 
-Example: http://localhost:9090/api/JsonLD/DetailInLD?type=accommodation&Id=70043B17DAE33F1EFCDA24D4BB4C1F72
+Examples: 
+ - http://localhost:9090/api/JsonLD/DetailInLD?type=accommodation&Id=B99E6F62545C11D1953300805A150B0B
+ - http://localhost:9090/api/JsonLD/DetailInLD?type=accommodation&Id=70043B17DAE33F1EFCDA24D4BB4C1F72
+ - http://localhost:9090/api/JsonLD/DetailInLD?type=accommodation&Id=B99E6F62545C11D1953300805A150B0B&endpoint=http://172.24.0.1:8080/sparql
 
 ## Parameters
 
@@ -113,4 +116,5 @@ A more detailed description can be found here: [https://github.com/noi-techpark/
 ### Documentation
 
 More documentation can be found at [https://opendatahub.readthedocs.io/en/latest/index.html](https://opendatahub.readthedocs.io/en/latest/index.html).
+
 

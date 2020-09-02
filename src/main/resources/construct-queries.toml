@@ -9,6 +9,7 @@ PREFIX schema: <http://schema.org/>
    ?idUrl a ?cl ; schema:name ?nameStr ; schema:description ?descStr ;
    schema:image ?imageUrl ; schema:email ?email ;
    schema:url ?url ; schema:telephone ?telephone ;
+   schema:priceRange ?priceRange ;
    schema:address [
         a schema:PostalAddress ; schema:name ?aNameStr ; schema:alternateName ?alternateStr;
         schema:addressRegion ?province; schema:addressCountry ?country; schema:addressLocality ?aLocalityStr ;
@@ -189,6 +190,10 @@ PREFIX schema: <http://schema.org/>
    OPTIONAL {
        ?a schema:streetAddress ?aStreet .
        FILTER ("en" = lang(?aStreet))
+   }
+
+   OPTIONAL {
+       ?h schema:priceRange ?priceRange .
    }
 
    # aggregate rating
